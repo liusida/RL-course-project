@@ -1,0 +1,50 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{fullpage}
+\usepackage[top=2cm, bottom=4.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
+\usepackage{lastpage}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{mathrsfs}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{shapes,backgrounds}
+\usepackage[utf8]{inputenc}
+\usepackage[ruled, vlined]{algorithm2e}
+% \usepackage{apacite}
+\usepackage{csquotes}
+
+% Edit these as appropriate
+\newcommand\course{Reinforcement Learning}
+\newcommand\NetID{sliu1@uvm.edu}
+\newcommand\Author{Sida Liu}
+\pagestyle{fancyplain}
+\headheight 35pt
+\lhead{\NetID\\\Author}
+% \chead{\textbf{\Large Assignment \chapternumber }}
+\rhead{\course \\ \today}
+\lfoot{}
+\cfoot{}
+\rfoot{\small\thepage}
+\headsep 1.5em
+
+\setlength{\parskip}{\baselineskip}%
+\setlength{\parindent}{0pt}%
+
+\newenvironment{list_abc}
+{ \begin{enumerate}[label=(\alph*)] }
+{ \end{enumerate} }
+
+\newenvironment{list_iv}
+{ \begin{enumerate}[label=\roman*.] }
+{ \end{enumerate} }
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
