@@ -203,11 +203,70 @@ class BackgammonEnv():
 # You will code up two agents below. To receive full credit for each, make sure you fill out the associated questions on Blackboard.
 
 # %%
-def RandomAgent(): 
+def readable_info_from_state(state):
+    board = state[:24*15*2]
+    out = state[24*15*2:24*15*2+15*2]
+    turn = state[-1:]
+    dices = state[24*15*2+15*2: 24*15*2+15*2+16]
+
+    board = board.reshape([24,15,2])
+    out = out.reshape([1,15,2])
+
+    board, out, dices, turn = board.astype(np.int), out.astype(np.int), dices.astype(np.int), turn.astype(np.int)
+
+    return board, out, dices, turn[0]
+
+def possible_starting_positions(board):
+    starting_positions = []
+    for point in range(24):
+        if np.sum(board[point, :, 0])>0:
+            starting_positions.append(point)
+    return starting_positions
+
+def convert_numbers(start_point, target_point, turn):
+    if turn==1:
+        if start_point is not None:
+            start_point = 23-start_point
+        target_point = 23-target_point
+    # print(f"Convert Number {start_point}, {turn}")
+    return start_point,target_point
+
+def possible_actions(state):
+    actions = [None]
+    # actions = []
+    board, out, dices, turn = readable_info_from_state(state)
+    dices_of_no_use = [0]
+    for dice in dices:
+        if dice in dices_of_no_use:
+            break
+        dices_of_no_use.append(dice)
+
+        roll = dice
+        if np.sum(out[:,:,0])>0:
+            start_point = None
+            target_point = -1+roll
+            start_point,target_point = convert_numbers(start_point,target_point,turn)
+            actions.append([roll, start_point, target_point])
+        else:
+            starting_positions = possible_starting_positions(board)
+            for start_point in starting_positions:
+                target_point = start_point+roll
+                if target_point > 23:
+                    continue # already at home
+                start_point,target_point = convert_numbers(start_point,target_point,turn)
+                actions.append([roll, start_point, target_point])
+    return actions
+
+def RandomAgent(state): 
+    """ Will become a baseline """
     # 1 point: Code a "stochastic" agent and describe your design decisions (e.g., what space are you sampling over?)
     # * This agent should use functions in the np.random namespace, so that it starts out as _deterministic_
     # * Write your description of your design decisions in the associated Blackboard question.
-    pass                
+    actions = possible_actions(state)
+    action_index = np.random.randint(low=0, high=len(actions))
+    action = actions[action_index]
+    # print(f"\nRandomAgent> choose from {actions}\n => {action}")
+    return action                
 
 # %%
 def get_observation(game):
@@ -221,11 +280,13 @@ def get_observation(game):
 
     board = np.zeros(shape=[24,15,2])
     out = np.zeros(shape=[1,15,2])
+    dices = np.zeros(shape=[16])
+    dices[:len(game.dice)] = game.dice
     turn = np.zeros(shape=[1])
-    turn[0] = (game.turn == default_player_symbol)
-    print(f"=== {default_player_symbol} ===")
+    turn[0] = (game.turn == 'o')
+    # print(f"=== {default_player_symbol} ===")
     for player in range(2):
-        print(f"player {'self' if player==0 else 'opponent'}")
+        # print(f"player {'self' if player==0 else 'opponent'}")
         piece = 0
         for point, value in enumerate(game.board):
             if math.copysign(-1, value) != game.get_sign[player_symbols[player]]:
@@ -241,8 +302,8 @@ def get_observation(game):
                     _piece = 14-piece
                 board[_point, _piece, player] = 1
                 piece += 1
-        print("")
-        print(board[:,:,player])
+        # print("")
+        # print(board[:,:,player])
 
         if player==0:
             sym = default_player_symbol
@@ -256,24 +317,72 @@ def get_observation(game):
         assert piece==15
 
     # observation is the combination of these three components:
-    obs = [board.flatten(), out.flatten(), turn.flatten()]
+    obs = [board.flatten(), out.flatten(), dices.flatten(), turn.flatten()]
     obs = np.concatenate(obs)
     return obs
 
 # %%
 def reward(state, action):
+    """design a reward `model' for the GreedyAgent, so that the GreedyAgent can use this reward function to choose actions. It is Q-value function."""
     # 1 point: Code a reward function for your `get_observation` function and describe your design decisions.
     # * What features of the state does the reward use?
     # * Does your reward function use any features of the action space?
     # * What about this reward function do you think will be useful for the agent during training?
-    pass
+    board, out, dices, turn = readable_info_from_state(state)
+    r = 0
+
+    if action is not None:
+        r += 10
+        start_point, target_point = action[1], action[2]
+        _start_point, _target_point = convert_numbers(start_point, target_point, 1)
+        if turn:
+            _start_point, _target_point, start_point, target_point = start_point, target_point, _start_point, _target_point
+
+        if np.sum(board[_target_point,:,1])>1: # opponent has many pieces, invalid move!
+            r -= 999
+        if start_point is None: # must roll in first
+            r += 499
+        else:
+            if np.sum(board[_target_point,:,1])==1: # step on opponent!
+                r += 50
+            if np.sum(board[target_point,:,0])==1: # any our pieces there?
+                r += 10
+            if np.sum(board[start_point,:,0])==2: # leaving only one pieces unprotected?
+                r -= 2
+            if np.sum(board[target_point,:,0])==0 and np.sum(board[_target_point,:,1])==0: # entering a new point unprotected?
+                r -= 2
+            if start_point>=18: # already in home area
+                r -= 4
+
+    # print(f"\nEvaluating action {action} => estimated value: {r}")
+
+    return r
 
 #%%
-def GreedyAgent():
+def GreedyAgent(state):
     # 1 point: Code an agent that uses the reward function to choose between actions. 
     # * How will you break ties between actions, if you encounter them?
     # * If you update your reward function after experimenting with the greedy agent, what did you change about your design choices?
-    pass 
+    
+    actions = possible_actions(state)
+
+    max_value = -np.inf
+    values = []
+    for a in actions:
+        q_value = reward(state, a)
+        values.append(q_value)
+    indices = np.argsort(values)[::-1]
+    last_value = None
+    chosen_actions = []
+    for index in indices:
+        if last_value is None or last_value==values[index]:
+            last_value = values[index]
+            chosen_actions.append(actions[index])
+
+    action_index = np.random.randint(low=0, high=len(chosen_actions))
+    action = chosen_actions[action_index]
+    # print(f"\nGreedyAgent> choose from {actions}\n => {action}")
+    return action 
 
 
 #%% [markdown]
@@ -289,13 +398,55 @@ def GreedyAgent():
 # * Which agent won? Did that surprise you? Why or why not?
 # * How long did it take for an episode to complete. Did you observe any unexpected outcomes?
 
-def driver(agent1, agent2, game): pass
+def driver(agent1, agent2, game):
+    """ agent1 plays 'x', agent2 plays 'o' """
+    turns = {
+        'x': agent1,
+        'o': agent2,
+    }
+    episode_length = 0
+    while not (done := game.done()): 
+        try:
+            # print("\n===================================\n" + str(game) + "\n===================================\n")
+            # if game.out[game.turn]: 
+            #     print("First move must roll in (list roll)")
+            # print("Move {} (format (roll, from, to))>".format(game.turn), end=' ')
+            state = get_observation(game)
+            action = turns[game.turn](state)
+            # print(f"Action: {action}")
+            game.step(action)
+            episode_length += 1
+        except MoveError as e:
+            # print('------------------------------------------------------------------------------------------')
+            # print("ERROR: " + str(e))
+            # print('------------------------------------------------------------------------------------------')
+            pass
+    if done > 0:
+        print(f'Player o ({agent2.__name__}) won!')
+    elif done < 0:
+        print(f'Player x ({agent1.__name__}) won!')
+    else: assert False
+    return done, episode_length
 
-def evaluate(): pass
-
+def evaluate():
+    results = []
+    episode_lengths = []
+    for i in range(100): # by default, just run 100 times to save time
+        print(i)
+        game = BackgammonEnv(None)
+        done, episode_length = driver(GreedyAgent, RandomAgent, game)
+        results.append(done)
+        episode_lengths.append(episode_length)
+    print("All Results:")
+    print(results)
+    print("Episode Lengths:")
+    print(episode_lengths)
+    print(f"On average: {np.mean(episode_lengths):.01f} +- {np.std(episode_lengths):.01f}")
 # %%
 # If you'd like to 
 if __name__ == "__main__":
+    evaluate()
+    exit(0)
     import argparse
     # looks like argparse strips formatting?
     parser = argparse.ArgumentParser(description="""
