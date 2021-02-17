@@ -2,11 +2,11 @@
 
 # Files
 
-`common`: Python helpers, modules, packages.
+`common/`: Python helpers, modules, packages.
 
-`input-data`: The data needed for training. e.g. configurations.
+`input-data/`: The data needed for training. e.g. configurations.
 
-`output-data`: The data produced by training. e.g. learning curves.
+`output-data/`: The data produced by training. e.g. learning curves.
 
 `.gitignore`: A file that contains files that don't need to be synchronized to GitHub or VACC.
 

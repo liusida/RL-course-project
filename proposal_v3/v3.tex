@@ -1,0 +1,85 @@
+% \newcommand\chapternumber{1}
+\input{../header/header.tex}
+
+\begin{document}
+
+\section{Learning Optimization:\\ RL-based Optimizers for Gradient Descent}
+
+\subsection{Structure}
+The deliverable will be a piece of open-source software.
+
+\subsection{Topic}
+Reinforcement Learning (RL) was developed in the 90s.
+The recent boost of RL was benefited from the development of Deep Learning (DL), especially the backpropagation and sophisticated optimization algorithms based on Gradient Descent (GD).
+However, currently used optimizers, such as Adam, are still made of hand-designed rules.
+It might be possible to produce optimizers that are more adaptive in complex tasks.
+
+In this work, I will propose RL-based Optimizers. We can call them AlphaOpts.
+There will be two loops in this design: the outer loop is the Deep Learning task we want to solve; the inner loop is an RL algorithm inside the AlphaOpt.
+
+\begin{figure}[h]
+    \center
+    \includegraphics[width=0.5\textwidth]{images/AlphaOpt.pdf}
+    \caption{The outer loop of an AlphaOpt}
+\end{figure}
+
+The core of an AlphaOpt is a standard Deep RL agent.
+The goal of an AlphaOpt is to minimize loss function as fast as possible, $\min_{\theta'} \mathcal{L}$, where $\theta'$ is the inner parameters.
+The reward function is the change of the value of the loss function, $-\Delta \mathcal{L}$.
+The observation includes current outer parameters, $\theta$, outer gradients, $\nabla_{\theta} \mathcal{L}$, and optionally, other additional information.
+The action will be the learning rate for each parameter at that step, $\alpha_\theta$.
+
+Though it is possible to use recursive AlphaOpts, in this work, an AlphaOpt itself will use conventional optimizers, such as Adam, to adjust its parameters.
+
+\subsection{Plan}
+The basic principle is \emph{Dream big, Start small}.
+
+\subsubsection{2-D task}
+The first task will be a toy task. The purpose of this task is to see the AlphaOpt work in action.
+In this task, there will be no Deep Learning in the outer loop.
+
+There are only two outer parameters, so we can visualize the parameter landscape. 
+Those landscapes are hand-designed, such as a convex landscape as the simplest case.
+We can see the learning process of the AlphaOpt and eventually the parameters of the outer loop reached the minimum.
+
+\subsubsection{MNIST}
+The second task is to recogonize MNIST hand-written digits.
+This is a well known scenario that we can use a CNN architecture.
+
+I will modify an existing algorithm, replacing the optimizer with an AlphaOpt, and see if it can solve the problem.
+
+\subsubsection{Omniglot}
+The third task is to recognize Omniglot letters in a meta-learning setting.
+There are many sub-dataset in Omniglot. Our learning algorithm will first train on the meta-training set, and then test on the meta-testing set.
+During meta-training, the outer parameters and the inner parameters can change, but during meta-testing, only outer parameters can change, and the inner parameter of AlphaOpts will keep the same.
+Thus we can see how pre-trained optimizer can facilitate the few-shot learning in this setting.
+
+\subsection{Related Works}
+\subsubsection{Learning to Optimize}
+\href{https://bair.berkeley.edu/blog/2017/09/12/learning-to-optimize-with-rl/}{https://bair.berkeley.edu/blog/2017/09/12/learning-to-optimize-with-rl/}
+
+Li et al. proposed this idea in 2016 \cite{li2016learning}, which is very similar to my idea.
+In Li et al., 2016, the observation contains: (1) Current parameters, $\theta$, (2) The $\Delta \mathcal{L}$ in recent $H$ time steps, (3) The $\nabla_{\theta} \mathcal{L}$ in recent $H$ time steps. (I changed the notation to be aligned with this document.)
+The action contains: (1) the change to make, $\Delta \theta = \alpha \nabla_{\theta} \mathcal{L}$.
+The goal is to minimize the total area under the learning curve at meta-test time.
+The reward function (cost function) is the negative value of outer loss function, $- \mathcal{L}$.
+They chose Guided Policy Search (GPS) as the RL algorithm for the optimizer.
+
+% For example, use Transformer to mitigate the fact that the size of observation space is too large.
+% Or, use RNN in the RL agent to avoid inputting gradients $H$ times.
+
+Li et al. 2017 provides more details on implementation \cite{li2017learning}, though source code is not available.
+The learned optimizer then tested on several image dataset, which outperforms Adam, AdaGrad, RMSprop in the experiments.
+
+In general, I think Li's implementation can be improved somehow. 
+At least I should be able produce a reusable package that can be easily used in PyTorch.
+
+\subsubsection{Learning to learn by gradient descent by gradient descent}
+Another highly cited paper Andrychowicz et al. 2016 \cite{andrychowicz2016learning}.
+Not using RL but other methods.
+
+\bibliographystyle{unsrt}
+\bibliography{reference.bib}
+
+
+\end{document}
