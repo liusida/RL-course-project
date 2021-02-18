@@ -12,4 +12,17 @@ David Ha and Jürgen Schmidhuber.
 \newblock {\em arXiv:1803.10122 [cs, stat]}, March 2018.
 \newblock arXiv: 1803.10122.
 
+\bibitem{li2017learning}
+Ke~Li and Jitendra Malik.
+\newblock Learning to optimize neural nets, 2017.
+
+\bibitem{andrychowicz2016learning}
+Marcin Andrychowicz, Misha Denil, Sergio Gomez, Matthew~W. Hoffman, David Pfau,
+  Tom Schaul, Brendan Shillingford, and Nando de~Freitas.
+\newblock Learning to learn by gradient descent by gradient descent, 2016.
+
+\bibitem{li2016learning}
+Ke~Li and Jitendra Malik.
+\newblock Learning to optimize, 2016.
+
 \end{thebibliography}
