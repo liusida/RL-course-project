@@ -4,6 +4,36 @@
 
 \section{Revised Project Proposal}
 
+\subsection{Response}
+\begin{tcolorbox}
+    Neat project proposal! It sounds like the tracer bullet version is one where you:
+
+    Code up an RNN to produce high level abstractions, which are functions of the current state.
+    
+    Learn a policy over these high level states.
+\end{tcolorbox}
+Does ``tracer bullet'' mean proof-of-concept? I googled this phrase but I am still not quite sure. :D Sorry about my English.
+
+And Yes, RNN will be a key component in this architecture.
+
+\begin{tcolorbox}
+    Will this high level policy interact with the lower-level policy over observations?
+\end{tcolorbox}
+In Section \ref{section:multi-rl-or-multi-rnn}, I will compare multi-RL and multi-RNN. I will come to the conclusion that multi-RNN can be equivalent to multi-RL, and multi-RNN has a major advantage: the gradient is available.
+So I'll use multi-RNN. (But I am not quite sure so many papers are using hierarchical-RL, maybe I am wrong?)
+
+\begin{tcolorbox}
+    Do you intend to learn over a family of possible high level policies?
+\end{tcolorbox}
+I'll gradually increase the complexity of the model and produce different higher representations.
+There will be only one RL policy at the top to consume all the representations.
+
+\begin{tcolorbox}
+    I am particularly interested in whether/how you might forsee using such a model for the embodied agent problem you've talked about.
+\end{tcolorbox}
+I might use Multi-Robot Continuous Control task as one of the testbed (control different robots to move forward).
+But the model developed in this work should be a general RL model that can work beyond robotics.
+
 \subsection{Structure}
 The deliverable will be a piece of open-source software.
 
@@ -35,10 +65,9 @@ In the setting of Reinforcement Learning, we can simply situate the agent in an 
 At each time step, we can pass observation through the neural network model of the agent and get a value of that state (or action);
 we can also use the Temporal Difference (TD) method to get a value of that state (or action).
 We assume the TD method gives us the right value, so we adjust the parameters of the neural network model of the agent to make two values consistent.
-
 This consistency is what we usually use to train an agent in Deep Reinforcement Learning.
 
-\subsubsection{Additional signal beside TD method}
+\subsubsection{Additional training signal beside TD method}
 What if the TD method doesn't give us the perfect value function? Do we have other sources of learning signals?
 
 One possible learning signal can come from temporal consistency.
@@ -49,9 +78,9 @@ They should be consistent.
 And we can train the neural network model based on this consistency.
 
 This might be an additional source for learning besides the TD method. 
-I mention this because I think this is interesting, but it might not be quite related to my course project.
+I mention this because I think this is interesting, but it might not be implemented in this work.
 
-\subsubsection{Course Project Plan}
+\subsubsection{Course Project Plan: Step 0}
 
 I'll start the project with an empty framework without any RNNs illustrated in Fig \ref{fig:starting_point}.
 
@@ -74,7 +103,7 @@ I am not very sure about the right side of the diagram yet.
 For example, in conventional hierarchical RL, people use options to execute a sequence of actions, but I am not sure if it is necessary in this framework.
 Maybe in this project, I'll just leave it as simple as it is.
 
-\subsubsection{Environments}
+\subsubsection{Testing Environments}
 My algorithm should be general, so it can work in different environments.
 
 One possible testbed is the Continuous Control problem.
@@ -82,7 +111,7 @@ For example, locomotion is my most familiar task.
 
 I also wish to test it in some multi-player games, so maybe I can ask my agent to play with someone else's agent.
 
-\subsection{World Model}
+\subsection{World Model: An Example}
 David Ha et al. 2018 proposed the World Model \cite{ha_world_2018}.
 As illustrated in Fig \ref{fig:world_model}, it utilizes a VAE and an RNN to make a model so that the agent can not just see the compressed current observation but can also predict the future.
 Both current observation and the prediction of the future are passed into an RL agent.
@@ -103,21 +132,28 @@ As illustrated in Fig \ref{fig:starting_point}, I prefer multiple modules that c
     \label{fig:world_model}
 \end{figure}
 
-\subsection{Multiple RLs or Multiple RNNs?}
-Before I read these two papers \cite{li2017learning}\cite{andrychowicz2016learning}, I thought there's little in common between RL and RNN.
+\subsection{Multiple RLs or Multiple RNNs?} \label{section:multi-rl-or-multi-rnn}
+Before I read these two papers \cite{li2017learning}\cite{andrychowicz2016learning}, I thought RL and RNN are simply different creatures.
 And then, I looked at these two approaches of making learned optimizers to replace hand-designed optimizer such as Adam, and I realized there are so many similarities.
 
 One views the optimizer as an RL agent\cite{li2017learning}, and the other views the optimizer as an RNN network\cite{andrychowicz2016learning}.
 Here is a brief comparison:
 
 \subsubsection{RL: Learning to Optimize}
-% \href{https://bair.berkeley.edu/blog/2017/09/12/learning-to-optimize-with-rl/}{https://bair.berkeley.edu/blog/2017/09/12/learning-to-optimize-with-rl/}
+% 
 Li et al. proposed this idea in 2016 \cite{li2016learning}, which is very similar to my idea.
 In Li et al., 2016, the observation contains: (1) Current parameters, $\theta$, (2) The $\Delta \mathcal{L}$ in recent $H$ time steps, (3) The $\nabla_{\theta} \mathcal{L}$ in recent $H$ time steps. (I changed the notation to be aligned with this document.)
 The action contains: (1) the update steps, $\Delta \theta = \alpha \nabla_{\theta} \mathcal{L}$.
 The goal is to minimize the total area under the learning curve at meta-test time.
 The reward function (cost function) is the negative value of outer loss function, $- \mathcal{L}$.
 They chose Guided Policy Search (GPS) as the RL algorithm for the optimizer.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/learn-to-optimize.png}
+    \caption{Illustration of the Paper \emph{Learning to Optimize}. Source: \href{https://bair.berkeley.edu/blog/2017/09/12/learning-to-optimize-with-rl/}{Blog}}
+    \label{fig:world_model}
+\end{figure}
 
 Li et al. 2017 provide more details on implementation \cite{li2017learning}, though source code is not available.
 The learned optimizer was then tested on several image datasets, which outperforms Adam, AdaGrad, RMSprop in the experiments.
