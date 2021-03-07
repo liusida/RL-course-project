@@ -1,0 +1,47 @@
+\input{../header/header.tex}
+
+\begin{document}
+
+\section*{Project Milestones and Goals}
+
+\begin{table}[h]
+    \caption{Milestones and Goals}
+    \centering
+    \begin{tabular}{cl}
+        \midrule\midrule
+        Date       & Milestone                                           \\
+        \midrule\midrule
+        2021-03-10 & Basic Coding Framework                      \\
+        2021-03-20 & Version 1: An RL agent with two different Mlp modules. \\
+        2021-03-30 & Version 2: An RL agent with two different RNN modules. \\
+        2021-04-10 & Version 3: An RL agent with 2 RNN + 2 Mlp,             \\
+                   & test on Multi-Robot Continuous Control problem.     \\
+        \midrule\midrule
+    \end{tabular}
+    \label{table:m0}
+\end{table}
+
+\subsection{Basic Coding Framework}
+
+Setup up the coding framework on GitHub.
+The project framework will be based on Stable-Baselines3 and other packages.
+
+\subsection{Version 1: An RL agent with two different Mlp modules}
+
+The simplest case, there are two different Mlp modules.
+The agent would make decision based on the concatenation of the activations of these two modules.
+The system will then test on single-body locomotion task.
+
+\subsection{Version 2: An RL agent with two different RNN modules}
+
+Replace two Mlp modules with two different RNN modules.
+It will be nice if they have different time scales.
+
+\subsection{Version 3: An RL agent with 2 RNN + 2 Mlp}
+
+Combine Mlp and RNN modules together to produce a better abstraction of the observations.
+The system will then be tested on multi-body locomotion task.
+
+The performance of different versions will be compared.
+
+\end{document}

@@ -1,12 +1,14 @@
 import pickle
 from assignment2 import *
 
-with open("results.pickle", "rb") as f:
-    pi1, pi2, pi1_, pi2_, player1, player2, v1, v2 = pickle.load(f)
+with open("sida.pickle", "rb") as f:
+    pi1, pi2, pi1_, pi2_, player1, player2, v1, v2, v1_vi, v2_vi = pickle.load(f)
 
 # check values:
 
 test_case_states = [
+    (0, 0, 2, -2, 0), # this is from Reflection Question 2.
+    (0, 1, 1, -1, -1), # this is the next state of Reflection Q2.
     (-2,0,0,0,2),
     (-2,0,0,2,0),
     (-2,0,2,0,0),
@@ -46,3 +48,8 @@ print("check v1", "="*10)
 check_value(test_case_states, v1)
 print("check v2", "="*10)
 check_value(test_case_states, v2)
+
+print("check v1 from value iteration", "="*10)
+check_value(test_case_states, v1_vi)
+print("check v2 from value iteration", "="*10)
+check_value(test_case_states, v2_vi)

@@ -255,6 +255,11 @@ class MiniGammon5Env(BackgammonEnv):
 # be a method on the MiniGammon5Env class, or a standalone function.
 # Describe your reasoning for the design: did you iterate at all? What did you change, 
 # if anything?
+
+# Reflect:
+# In the office hour, I noticed that the goal for the agent is not to win the game or gain any advantage on the board but to make the game stuck as soon as possible.
+# So, since the agent need to do it ASAP, I assign reward=-1 for each time step, and by default, the reward is 0 when the game stucks.
+
 def reward(state):
     return -1
 
@@ -449,7 +454,7 @@ def enumerate_states(env: BackgammonEnv) -> List[Tuple[Tuple[int], int]]:
     return all_states
 
 
-def policy_evaluation(states, policy: Agent, env: BackgammonEnv, oppo: Agent, discount: float = 0.1) -> Dict[Tuple[Tuple[int], int], int]:
+def policy_evaluation(states, policy: Agent, env: BackgammonEnv, oppo: Agent, discount: float = 0.1, value_function = None) -> Dict[Tuple[Tuple[int], int], int]:
     # (1 point) This function will compute the value function for your policy.
     # You may choose your own value of the discount factor and threshold for convergence
     # You will need to provide an opposition agent to advance the state through a turn. 
@@ -482,11 +487,21 @@ def policy_evaluation(states, policy: Agent, env: BackgammonEnv, oppo: Agent, di
     #   the environment appropriately.
     # * You may want to use the `env.set_state` function. Be sure to check its type signature.
 
-    game = env
+    # Reflect:
+    # I don't have any expectation before running policy evaluation. Any thing should be possible.
+    # But there is still surprise: the value all end up close to -1.1.
+    # I thought about it for a while, and that makes sense, because the discount factor is 0.1, and the reward is -1, so the value function is approximately -1 + 0.1 * (-1) if the game doesn't end.
+    # I think the discount factor is a little small in practice.
+    # I am not sure why you ask a state that is not reachable. The start state is [-2,0,0,0,2]. They won't switch sides.
+    # Assuming we don't consider whether it is reachable (in practice, we usually don't know if a state is reachable or not unless intentionally optimize for it.)
+    # Value is -1.1 for either agent. It makes sense because the game is going to end in next two steps. 
+    # and the agent won't have any choice other than moving one and moving the other one, and game end.
 
-    value_function = {}
-    for state in states:
-        value_function[state] = -999
+    game = env
+    if value_function is None:
+        value_function = {}
+        for state in states:
+            value_function[state] = -999
     # in-place policy evalution (Page 75)
     step = 0
     while True:
@@ -520,11 +535,13 @@ def policy_evaluation(states, policy: Agent, env: BackgammonEnv, oppo: Agent, di
                 new_value = 0
             else:
                 new_value = new_value / (len(possible_actions) * len(oppo_possible_actions))
+            if False and new_value!=old_value:
+                print(f"Value changed in policy evalution: new {new_value} old {old_value}")
             delta = max(delta, np.abs(new_value - old_value))
             value_function[state] = new_value
         if delta < 0.1:
             break
-    print(f"policy evalution done in {step} steps.")
+    print(f"policy_evaluation> done in {step} steps.")
     return value_function
 
 
@@ -560,8 +577,18 @@ def policy_improvement(states, policy: Agent, env: BackgammonEnv, oppo: Agent, v
     #   the action whose q-value you are computing, that is not equal to the action taken 
     #   when we just follow the policy).
 
-    game = env
+    # Reflect:
+    # My expectation was that the policy will update some mappings to produce better actions at some states.
+    # I expected some of the non-terminating states will be updated.
+    # Terminating states will not be updated.
+    # This optimization is based on the value function calculated, so I can check the value function and manually compute which action is optimal.
+    # I expected both policies would change. Because this process is based on the value function, and we newly computed the value function, and it's not possible that those original policies will result the right actions because they don't know the value function.
+    # After implemented this function, I observed that the policy changed in either case.
+    # 20 states were improved in the first run for the RandomAgent.
+    # 44 states were improved in the first run for the BasicDeterministicPolicy.
+    # They both improved a lot.
 
+    game = env
     new_policy = MyPolicy(policy)
     for current_state in states:
         game.set_state(current_state, [1], turn=policy.token)
@@ -595,6 +622,17 @@ def policy_improvement(states, policy: Agent, env: BackgammonEnv, oppo: Agent, v
                 next_values.append(vfn[next_state])
         new_policy.update_policy(current_state, current_actions, next_states, next_values)
 
+    state_updated = 0
+    for state in states:
+        # for the reflection question:
+        game.set_state(state, [1], turn=policy.token)
+        old_action = policy.get_action(game)
+        game.set_state(state, [1], turn=policy.token)
+        new_action = new_policy.get_action(game)
+        if old_action!=new_action:
+            state_updated += 1
+    print(f"policy_improvement> Improved {state_updated} states.")
+
     return new_policy
 
 def policy_iteration(states, policy: Agent, env: BackgammonEnv, oppo: Agent, vfn: Any, discount: float=0.1) -> Tuple[Agent, Dict[Tuple[Tuple[int], int], int]]:
@@ -602,13 +640,20 @@ def policy_iteration(states, policy: Agent, env: BackgammonEnv, oppo: Agent, vfn
     # 
     # How many passes of policy iteration did you run before your value function converged?
     # (Answer for both RandomAgent and BasicDeterministicAgent)
+
+    # Reflection:
+    # For RandomAgent, the policy iteration looped once (22 states were improved) and the second iteration it was already converged.
+    # Same for BasicDeterministicPolicy, the policy iteration looped once (44 states were improved) and the second iteration it was already converged.
+     
     game = env
     iteration = 0
     while True:
         iteration += 1
-        print(f"Iter {iteration}")
-        value_function = policy_evaluation(states, policy, env, oppo, discount)
+        print(f"policy_iteration> Iter {iteration}")
+        value_function = policy_evaluation(states, policy, env, oppo, discount, value_function=vfn)
         new_policy = policy_improvement(states, policy, env, oppo, value_function, discount)
+        if policy.token=='x':
+            print(f"policy_iteration> value(-2,0,0,2,0): {value_function[(-2,0,0,2,0)]}")
         policy_stable = True
         for state in states:
             game.set_state(state, [1], turn=policy.token)
@@ -620,14 +665,18 @@ def policy_iteration(states, policy: Agent, env: BackgammonEnv, oppo: Agent, vfn
         policy = new_policy
         if policy_stable:
             break
-    print(f"policy iteration loops {iteration} times.")
+    print(f"policy_iteration> loops {iteration} times.")
     return policy
 
-def value_iteration(states, policy: Agent, env: BackgammonEnv, oppo: Agent, discount: float = 1.0) -> Tuple[Agent, Dict[Tuple[Tuple[int], int], int]]:
+def value_iteration(states, policy: Agent, env: BackgammonEnv, oppo: Agent, discount: float = 0.1) -> Tuple[Agent, Dict[Tuple[Tuple[int], int], int]]:
     # (1 point) Implement value iteration.
     #
     # How many passes of value interation did you run before your value function converged?
     # (Answer for both RandomAgent and BasicDeterministicAgent)
+
+    # Reflect:
+    # For RandomAgent, the value iteration looped 7 times and converged at the 8-th iteration (28 states were improved).
+    # For BasicDeterministicAgent, the value iteration looped 9 times and converged at the 10-th iteration (50 states were improved).
     value_function = {}
     for state in states:
         value_function[state] = -999
@@ -642,7 +691,7 @@ def value_iteration(states, policy: Agent, env: BackgammonEnv, oppo: Agent, disc
             game.set_state(state, [1], turn=policy.token)
             done = False
             possible_actions = policy.get_actions(game)
-            possible_next_values = []
+            possible_action_values = []
             if len(possible_actions)==0:
                 new_value = 0
             else:
@@ -652,28 +701,31 @@ def value_iteration(states, policy: Agent, env: BackgammonEnv, oppo: Agent, disc
                     tmp_state = game.board
                     assert oppo.token == game.turn
 
-                    new_value = 0
                     oppo_possible_actions = oppo.get_actions(game)
                     if len(oppo_possible_actions)==0:
                         done = True
+
+                    action_value = 0
                     for oppo_action in oppo_possible_actions:
                         game.set_state(tmp_state, [1], turn=oppo.token)
                         game.step(oppo_action)
                         next_state = tuple(game.board)
                         # print(f"next_state = {next_state}")
-                        new_value += reward(state) + discount * value_function[next_state]
+                        action_value += reward(state) + discount * value_function[next_state]
                     if done:
-                        new_value = 0
+                        action_value = 0
                     else:
-                        new_value = new_value / len(oppo_possible_actions)
-                    possible_next_values.append(new_value)
-                new_value = np.max(possible_next_values)
-                
+                        action_value = action_value / len(oppo_possible_actions)
+                    
+                    possible_action_values.append(action_value)
+                new_value = np.max(possible_action_values)
             delta = max(delta, np.abs(new_value - old_value))
             value_function[state] = new_value
+        # if policy.token=='x':
+        #     print(f"value_iteration> value(-2,0,0,2,0): {value_function[(-2,0,0,2,0)]}")
         if delta<0.1:
             break
-    print(f"Value iteration loops {iteration} times.")
+    print(f"value_iteration> loops {iteration} times.")
 
     new_policy = policy_improvement(states, policy, env, oppo, value_function, discount)
     return new_policy, value_function
@@ -733,61 +785,75 @@ if __name__ == "__main__":
     print(v1[((0, 0, 2, -2, 0))])
     print(v2[((0, 0, 2, -2, 0))])
     # see states where the value functions for each policy differ:
-    for s in states:
-        if v1[s] != v2[s]:
-            print(s, v1[s], v2[s])
+    # for s in states:
+    #     if v1[s] != v2[s]:
+    #         print(s, v1[s], v2[s])
     print('===== Policy Improvement ====')
+    print("")
     pi1 = policy_improvement(states, RandomAgent(), game, BasicDeterministicPolicy(), v1)
+    print("")
     pi2 = policy_improvement(states, BasicDeterministicPolicy(), game, RandomAgent(), v2)
+    print("")
     print('===== Policy iteration ====')
+    print("")
     pi1_ = policy_iteration(states, RandomAgent(), game, BasicDeterministicPolicy(), v1)
+    print("")
     pi2_ = policy_iteration(states, BasicDeterministicPolicy(), game, RandomAgent(), v2)
+    print("")
     print('==== Value iteration =====')
-    player1, v1 = value_iteration(states, RandomAgent(), game, BasicDeterministicPolicy())
-    player2, v2 = value_iteration(states, BasicDeterministicPolicy(), game, RandomAgent())
+    print("")
+    player1, v1_vi = value_iteration(states, RandomAgent(), game, BasicDeterministicPolicy())
+    print("")
+    player2, v2_vi = value_iteration(states, BasicDeterministicPolicy(), game, RandomAgent())
+    print("")
+    print('==== Debug =====')
+    print("")
+    policy_iteration(states, player1, game, BasicDeterministicPolicy(), v1_vi)
+    policy_iteration(states, player2, game, RandomAgent(), v2_vi)
+
     # # Demo of the agents playing the game
     # # Run this with `python assignemnt2_soln.py --player1 RandomAgent --player2 BasicDeterministicPolicy`
     # print('player1 ({}) is {}'.format(player1.token, player1.__class__.__name__))
     # print('player2 ({}) is {}'.format(player2.token, player2.__class__.__name__))
-    numsteps = 0
-    # reset the env
-    game.set_state(game.get_start_board(), game.roll())
-    done = game.done()
-    # uncomment the below to alias players with results from value iteration
+    # numsteps = 0
+    # # reset the env
+    # game.set_state(game.get_start_board(), game.roll())
+    # done = game.done()
+    # # uncomment the below to alias players with results from value iteration
 
-    while not done:
-        try:
-            print("\n===================================\n" + str(game) + "\n===================================\n")
-            if player1 and game.turn == player1.token:
-                action = player1.get_action(game)
-            elif player2 and game.turn == player2.token:
-                action = player2.get_action(game)
-            else:
-                if game.out[game.turn]: 
-                    print("First move must roll in (list roll)")
-                print("Move {} (format (roll, from, to))>".format(game.turn), end=' ')
-                action = eval(input() or "None")
-            if action==None:
-                break
-            game.step(action)
-            numsteps += 1
-        except MoveError as e:
-            print('------------------------------------------------------------------------------------------')
-            print("ERROR: " + str(e))
-            print('------------------------------------------------------------------------------------------')
-        done = game.done()
+    # while not done:
+    #     try:
+    #         print("\n===================================\n" + str(game) + "\n===================================\n")
+    #         if player1 and game.turn == player1.token:
+    #             action = player1.get_action(game)
+    #         elif player2 and game.turn == player2.token:
+    #             action = player2.get_action(game)
+    #         else:
+    #             if game.out[game.turn]: 
+    #                 print("First move must roll in (list roll)")
+    #             print("Move {} (format (roll, from, to))>".format(game.turn), end=' ')
+    #             action = eval(input() or "None")
+    #         if action==None:
+    #             break
+    #         game.step(action)
+    #         numsteps += 1
+    #     except MoveError as e:
+    #         print('------------------------------------------------------------------------------------------')
+    #         print("ERROR: " + str(e))
+    #         print('------------------------------------------------------------------------------------------')
+    #     done = game.done()
 
-    if done > 0:
-        print('Player o won in {} moves!'.format(numsteps))
-    elif done < 0:
-        print('Player x won in {} moves!'.format(numsteps))
-    else:
-        print('Game Stuck.')
+    # if done > 0:
+    #     print('Player o won in {} moves!'.format(numsteps))
+    # elif done < 0:
+    #     print('Player x won in {} moves!'.format(numsteps))
+    # else:
+    #     print('Game Stuck.')
     
 
     import pickle
     results = [
-        pi1, pi2, pi1_, pi2_, player1, player2, v1, v2,
+        pi1, pi2, pi1_, pi2_, player1, player2, v1, v2, v1_vi, v2_vi,
     ]
     with open("./sida.pickle", "wb") as f:
         pickle.dump(results, f)
