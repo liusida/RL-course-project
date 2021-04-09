@@ -7,5 +7,6 @@
 *.bbl
 *.blg
 Exported Items.bib
+.vscode/
 
 output-data
