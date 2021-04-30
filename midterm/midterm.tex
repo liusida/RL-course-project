@@ -1,0 +1,31 @@
+\input{../header/header.tex}
+
+\begin{document}
+
+\section*{Midterm Milestones Report}
+
+\begin{table}[h]
+    \caption{Current Progress}
+    \centering
+    \begin{tabular}{clcc}
+        \midrule\midrule
+        Date       & Milestone & Points     & Status                                      \\
+        \midrule\midrule
+        2021-03-10 & Basic Coding Framework  & 5    &\checkmark                \\
+        2021-03-20 & Version 1: An RL agent with two different Mlp modules. &5 &\checkmark  \\
+        2021-03-30 & Version 2: An RL agent with two different RNN modules. &5 &\checkmark  \\
+        2021-04-10 & Version 3: An RL agent with 2 RNN + 2 Mlp,             &10 & hard, still working\\
+                   & test on Multi-Robot Continuous Control problem.     &\\
+        \midrule\midrule
+    \end{tabular}
+    \label{table:m0}
+\end{table}
+
+\subsection{Main Obstacles}
+Multilayer Perceptron (MLP) processes one tuple $<s_t, a_t, r_t>$ at a time, however, RNN usually needs to process a sequence of experience.
+
+I have implemented both training program for MLPs and RNNs, but still working on integrating those two types of modules.
+
+For more detail, please visit: \url{https://github.com/liusida/experimental_rl}
+
+\end{document}
